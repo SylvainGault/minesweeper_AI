@@ -57,17 +57,11 @@ class AI(object):
         hintsconst[closeboard] = None
         return hintsconst
 
-    def next_move(self, board):
-        h = board.shape[0]
-        w = board.shape[1]
-        openboard = (board >= 0)
-
-        varmines = clpfd.Variables(board.shape, range(2), "mines")
-        hintsconst = self._hint_constraints(varmines, board)
-
-        # Where there is a hint, there is no mine
-        nomineconst = (varmines[openboard] == 0)
-
+    def _check_coords(self, openboard):
+        """
+        Return a matrix of cells to check and the list of their coordinate in
+        the order in which they should be checked.
+        """
         # Cells to check for mines
         kern = np.ones((3, 3), dtype=np.bool)
         checkboard = morph.binary_dilation(openboard, structure=kern)
@@ -81,6 +75,21 @@ class AI(object):
         dist = checkcoords - np.array([self.lastmove[1], self.lastmove[0]])
         dist = dist.max(axis=1)
         checkcoords = checkcoords[dist.argsort()]
+
+        return checkboard, checkcoords
+
+    def next_move(self, board):
+        h = board.shape[0]
+        w = board.shape[1]
+        openboard = (board >= 0)
+
+        varmines = clpfd.Variables(board.shape, range(2), "mines")
+        hintsconst = self._hint_constraints(varmines, board)
+
+        # Where there is a hint, there is no mine
+        nomineconst = (varmines[openboard] == 0)
+
+        checkboard, checkcoords = self._check_coords(openboard)
 
         for c in checkcoords:
             y, x = c
