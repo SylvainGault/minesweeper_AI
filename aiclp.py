@@ -22,11 +22,15 @@ class AI(object):
         self.lastmove = None
         self.known_mines = None
 
+
+
     def new_game(self, width, height):
         self.width = width
         self.height = height
         self.lastmove = (np.random.randint(width), np.random.randint(height))
         self.known_mines = np.zeros((height, width), np.bool)
+
+
 
     def _hint_constraints(self, varmines, board):
         """
@@ -57,6 +61,8 @@ class AI(object):
         hintsconst[closeboard] = None
         return hintsconst
 
+
+
     def _check_coords(self, openboard):
         """
         Return a matrix of cells to check and the list of their coordinate in
@@ -77,6 +83,8 @@ class AI(object):
         checkcoords = checkcoords[dist.argsort()]
 
         return checkboard, checkcoords
+
+
 
     def next_move(self, board):
         h = board.shape[0]
