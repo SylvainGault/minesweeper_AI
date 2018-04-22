@@ -28,16 +28,23 @@ class AI(object):
         self.lastmove = (np.random.randint(width), np.random.randint(height))
         self.known_mines = np.zeros((height, width), np.bool)
 
-    def next_move(self, board):
-        h = board.shape[0]
-        w = board.shape[1]
-        openboard = (board >= 0)
+    def _hint_constraints(self, varmines, board):
+        """
+        Build and return a matrix of expressions that represents the number of
+        mines around each cell.
+        varmines: Matrix of clpfd Variables representing the presence of mine
+        in each cell.
+        board: Matrix of booleans integers representing the board.
+        """
+
+        h = self.height
+        w = self.width
         closeboard = (board < 0)
 
-        varmines = clpfd.Variables(board.shape, range(2), "mines")
-
+        # Add a padding around to simplify the summation just below
         summines = np.empty((h + 2, w + 2), np.object).view(clpfd.Variables)
         summines[:, :] = 0
+
         for a in [-1, 0, 1]:
             for b in [-1, 0, 1]:
                 summines[1+a:h+1+a, 1+b:w+1+b] += varmines
@@ -48,6 +55,15 @@ class AI(object):
         # Set the constraint that the sum of mines is equal to the hint
         hintsconst = (summines == board)
         hintsconst[closeboard] = None
+        return hintsconst
+
+    def next_move(self, board):
+        h = board.shape[0]
+        w = board.shape[1]
+        openboard = (board >= 0)
+
+        varmines = clpfd.Variables(board.shape, range(2), "mines")
+        hintsconst = self._hint_constraints(varmines, board)
 
         # Where there is a hint, there is no mine
         nomineconst = (varmines[openboard] == 0)
@@ -101,6 +117,7 @@ class AI(object):
 
         # Just choose a random cell
         # But preferably one far away
+        closeboard = (board < 0)
         randboard = np.logical_xor(closeboard, checkboard)
         randcoord = np.argwhere(randboard)
 
