@@ -86,6 +86,34 @@ class AI(object):
 
 
 
+    def _is_cell_free(self, x, y, hintsconst, nomineconst, varmines):
+        solver = clpfd.solver()
+        solver.add_constraint(hintsconst)
+        solver.add_constraint(nomineconst)
+        solver.add_constraint(varmines[self.known_mines] == 1)
+        solver.add_constraint(varmines[y, x] == 1)
+
+        printover("checking if %d, %d is free" % (x, y))
+        sol = solver.solve()
+        printover("")
+        return (sol.status == 'Infeasible')
+
+
+
+    def _is_cell_a_mine(self, x, y, hintsconst, nomineconst, varmines):
+        solver = clpfd.solver()
+        solver.add_constraint(hintsconst)
+        solver.add_constraint(nomineconst)
+        solver.add_constraint(varmines[self.known_mines] == 1)
+        solver.add_constraint(varmines[y, x] == 0)
+
+        printover("checking if %d, %d is a mine" % (x, y))
+        sol = solver.solve()
+        printover("")
+        return (sol.status == 'Infeasible')
+
+
+
     def next_move(self, board):
         h = board.shape[0]
         w = board.shape[1]
@@ -106,30 +134,14 @@ class AI(object):
             if self.known_mines[y, x]:
                 continue
 
-            solver = clpfd.solver()
-            solver.add_constraint(hintsconst)
-            solver.add_constraint(nomineconst)
-            solver.add_constraint(varmines[self.known_mines == True] == 1)
-            solver.add_constraint(varmines[y, x] == 1)
-
-            printover("checking if %d, %d is free" % (x, y))
-            sol = solver.solve()
-            if sol.status == 'Infeasible':
+            if self._is_cell_free(x, y, hintsconst, nomineconst, varmines):
                 self.lastmove = x, y
-                printover("")
                 return x, y
 
-            if sol.status == 'Optimal':
-                # There exist a solution that might put a mine there.
-                # Make sure there's necessarily one and mark it.
-                solver = clpfd.solver()
-                solver.add_constraint(hintsconst)
-                solver.add_constraint(nomineconst)
-                solver.add_constraint(varmines[self.known_mines == True] == 1)
-                solver.add_constraint(varmines[y, x] == 0)
-                printover("checking if %d, %d is a mine" % (x, y))
-                if solver.solve().status == 'Infeasible':
-                    self.known_mines[y, x] = True
+            # There exist a solution that might put a mine there.
+            # Make sure there's necessarily one and mark it.
+            elif self._is_cell_a_mine(x, y, hintsconst, nomineconst, varmines):
+                self.known_mines[y, x] = True
 
 
         # Just choose a random cell
@@ -143,5 +155,4 @@ class AI(object):
 
         y, x = randcoord[np.random.randint(randcoord.shape[0])]
         self.lastmove = x, y
-        printover("")
         return x, y
