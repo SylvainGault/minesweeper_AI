@@ -114,6 +114,23 @@ class AI(object):
 
 
 
+    def _random_cell(self, board, checkboard):
+        """
+        Return the coordinates of a random cell that is not currently flagged.
+        Preferably, one that wasn't just checked.
+        """
+        openableboard = (board < 0) & ~self.known_mines
+        randboard = openableboard & ~checkboard
+        randcoord = np.argwhere(randboard)
+
+        if randcoord.shape[0] == 0:
+            randcoord = np.argwhere(openableboard)
+
+        y, x = randcoord[np.random.randint(randcoord.shape[0])]
+        return x, y
+
+
+
     def next_move(self, board):
         h = board.shape[0]
         w = board.shape[1]
@@ -139,16 +156,6 @@ class AI(object):
                 self.known_mines[y, x] = True
                 return 'flag', x, y
 
-
-        # Just choose a random cell
-        # But preferably one far away
-        openableboard = (board < 0) & ~self.known_mines
-        randboard = openableboard & ~checkboard
-        randcoord = np.argwhere(randboard)
-
-        if randcoord.shape[0] == 0:
-            randcoord = np.argwhere(openableboard)
-
-        y, x = randcoord[np.random.randint(randcoord.shape[0])]
+        x, y = self._random_cell(board, checkboard)
         self.lastmove = x, y
         return 'click', x, y
