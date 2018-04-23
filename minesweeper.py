@@ -25,6 +25,7 @@ class MineSweeper(object):
             raise ValueError("Can't put that many mines")
 
         self._mine_board = np.zeros((height, width), dtype=np.bool)
+        self._flag_board = np.zeros((height, width), dtype=np.bool)
         self._hint_board = np.zeros((height, width), dtype=np.int8)
         self._open_board = np.zeros((height, width), dtype=np.bool)
 
@@ -33,6 +34,7 @@ class MineSweeper(object):
     def _initialize(self):
         self._open_board[:, :] = False
         self._mine_board[:, :] = False
+        self._flag_board[:, :] = False
 
         self._mine_board.flat[:self._nmines] = True
         np.random.shuffle(self._mine_board.flat)
@@ -75,11 +77,12 @@ class MineSweeper(object):
         Full representation of the board.
         0 is an opened cell without mines.
         -1 is a closed cell.
-        -2 is an opened cell with a mine.
+        -2 is a flag.
+        -3 is an opened cell with a mine.
         """
         closed = 1 - self._open_board
         openmine = self._mine_board * self._open_board
-        return self.hints - closed - 2 * openmine
+        return self.hints - closed - self._flag_board - 3 * openmine
 
 
 
@@ -95,6 +98,8 @@ class MineSweeper(object):
                 elif cell > 0:
                     s += str(cell)
                 elif cell == -2:
+                    s += "F"
+                elif cell == -3:
                     s += "O"
                 else:
                     raise ValueError("Unexpected value in board: %d" % cell)
@@ -109,6 +114,7 @@ class MineSweeper(object):
     def restart(self):
         self._open_board[:, :] = False
         self._mine_board[:, :] = False
+        self._flag_board[:, :] = False
         self._hint_board[:, :] = 0
         self._initialized = False
 
@@ -131,9 +137,12 @@ class MineSweeper(object):
         if self._open_board[y, x]:
             raise ValueError("Cell at %d, %d is already open" % (x, y))
 
+        if self._flag_board[y, x]:
+            raise ValueError("Can't open flagged cell at %d, %d" % (x, y))
+
         self._open_board[y, x] = True
 
-        if self.finished:
+        if self.lost:
             return
 
         if self._hint_board[y, x] == 0:
@@ -150,3 +159,27 @@ class MineSweeper(object):
             mask = morph.binary_dilation(mask, structure=kern)
 
             self._open_board |= mask
+
+        if self.won:
+            self._flag_board[:, :] = self._mine_board[:, :]
+
+
+
+    def flag(self, x, y):
+        if x not in range(self._width):
+            raise ValueError("Value for %d for x is out of the board" % x)
+        if y not in range(self._height):
+            raise ValueError("Value for %d for y is out of the board" % y)
+
+        if not self._initialized:
+            self._initialize()
+            while self._mine_board[y, x]:
+                self._initialize()
+
+        self._flag_board[y, x] ^= 1
+
+        if self.finished:
+            raise ValueError("Can't play a game already finished")
+
+        if self._open_board[y, x]:
+            raise ValueError("Can't flag an open cell at %d, %d" % (x, y))
