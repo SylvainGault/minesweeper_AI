@@ -150,12 +150,10 @@ class AI(object):
                 self.lastmove = x, y
                 return 'click', x, y
 
-            # There exist a solution that might put a mine there.
-            # Make sure there's necessarily one and mark it.
-            elif self._is_cell_a_mine(x, y, hintsconst, nomineconst):
-                self.known_mines[y, x] = True
-                return 'flag', x, y
-
         x, y = self._random_cell(board, checkboard)
+        if self._is_cell_a_mine(x, y, hintsconst, nomineconst):
+            self.known_mines[y, x] = True
+            return 'flag', x, y
+
         self.lastmove = x, y
         return 'click', x, y
