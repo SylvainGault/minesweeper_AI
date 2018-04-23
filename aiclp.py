@@ -71,7 +71,7 @@ class AI(object):
         # Cells to check for mines
         kern = np.ones((3, 3), dtype=np.bool)
         checkboard = morph.binary_dilation(openboard, structure=kern)
-        checkboard = np.logical_xor(checkboard, openboard)
+        checkboard = (checkboard ^ openboard) & ~self.known_mines
         checkcoords = np.argwhere(checkboard)
 
         # Check the cells in order from the closest to the farthest from the
@@ -129,10 +129,6 @@ class AI(object):
         for c in checkcoords:
             y, x = c
 
-            # check that we don't already know there's a mine there
-            if self.known_mines[y, x]:
-                continue
-
             if self._is_cell_free(x, y, hintsconst, nomineconst):
                 self.lastmove = x, y
                 return x, y
@@ -145,12 +141,12 @@ class AI(object):
 
         # Just choose a random cell
         # But preferably one far away
-        closeboard = (board < 0)
-        randboard = np.logical_xor(closeboard, checkboard)
+        openableboard = (board < 0) & ~self.known_mines
+        randboard = openableboard & ~checkboard
         randcoord = np.argwhere(randboard)
 
         if randcoord.shape[0] == 0:
-            randcoord = np.argwhere(closeboard)
+            randcoord = np.argwhere(openableboard)
 
         y, x = randcoord[np.random.randint(randcoord.shape[0])]
         self.lastmove = x, y
