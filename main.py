@@ -7,6 +7,9 @@ import aiclp
 
 
 def main():
+    total_games = 10
+    won_games = 0
+
     args = sys.argv[1:]
     if len(args) > 0:
         args[0] = int(args[0])
@@ -21,7 +24,7 @@ def main():
     game = mine.MineSweeper(*args)
     ai = aiclp.AI()
 
-    for _ in range(10):
+    for _ in range(total_games):
         ai.new_game(game.board.shape[1], game.board.shape[0])
 
         while not game.finished:
@@ -33,9 +36,12 @@ def main():
         print(game)
         if game.won:
             print("You won")
+            won_games += 1
         if game.lost:
             print("You lost")
         game.restart()
+
+    print("Won %d/%d games" % (won_games, total_games))
 
 
 
