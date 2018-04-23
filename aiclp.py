@@ -86,11 +86,8 @@ class AI(object):
 
 
 
-    def _is_cell_free(self, x, y, hintsconst, nomineconst):
-        solver = clpfd.solver()
-        solver.add_constraint(hintsconst)
-        solver.add_constraint(nomineconst)
-        solver.add_constraint(self.varmines[self.known_mines] == 1)
+    def _is_cell_free(self, solver, x, y):
+        solver = solver.copy()
         solver.add_constraint(self.varmines[y, x] == 1)
 
         printover("checking if %d, %d is free" % (x, y))
@@ -100,11 +97,8 @@ class AI(object):
 
 
 
-    def _is_cell_a_mine(self, x, y, hintsconst, nomineconst):
-        solver = clpfd.solver()
-        solver.add_constraint(hintsconst)
-        solver.add_constraint(nomineconst)
-        solver.add_constraint(self.varmines[self.known_mines] == 1)
+    def _is_cell_a_mine(self, solver, x, y):
+        solver = solver.copy()
         solver.add_constraint(self.varmines[y, x] == 0)
 
         printover("checking if %d, %d is a mine" % (x, y))
@@ -143,15 +137,20 @@ class AI(object):
 
         checkboard, checkcoords = self._check_coords(openboard)
 
+        solver = clpfd.solver()
+        solver.add_constraint(hintsconst)
+        solver.add_constraint(nomineconst)
+        solver.add_constraint(self.varmines[self.known_mines] == 1)
+
         for c in checkcoords:
             y, x = c
 
-            if self._is_cell_free(x, y, hintsconst, nomineconst):
+            if self._is_cell_free(solver, x, y):
                 self.lastmove = x, y
                 return 'click', x, y
 
         x, y = self._random_cell(board, checkboard)
-        if self._is_cell_a_mine(x, y, hintsconst, nomineconst):
+        if self._is_cell_a_mine(solver, x, y):
             self.known_mines[y, x] = True
             return 'flag', x, y
 
