@@ -40,75 +40,40 @@ def solver(backend='pulp'):
 
 
 class Solver(metaclass=ABCMeta):
-    def __init__(self):
-        self._conststore = []
-        self._variables = {}
-
     def add_constraint(self, c):
         """Add a constraint to be solved."""
-
-        if c is None or isinstance(c, np.integer):
-            return
-
-        if isinstance(c, Variables):
-            for v in c.flat:
-                self.add_constraint(v)
-            return
-
-        for v in c.variables():
-            if v.name not in self._variables:
-                self._variables[v.name] = v
-            elif self._variables[v.name] is not v:
-                raise ValueError("Two variables with the same name in the same model")
-
-        self._conststore.append(c)
+        raise NotImplementedError("Must be implemented by subclass")
 
     def solve(self, variables=None):
         raise NotImplementedError("Not implemented yet")
-
-    def solutions(self):
-        """Return an iterable generating all the solutions."""
-        raise NotImplementedError("Not implemented yet")
-
-    def all_solutions(self):
-        return list(self.solutions)
 
 
 
 class SolverPulp(Solver):
     def __init__(self):
         super(SolverPulp, self).__init__()
-        self._lpvars = {}
-
-    def solve(self, variables=None):
         global pulp
         import pulp
-
-        prob = pulp.LpProblem()
-        if variables is None:
-            variables = self._variables.values()
-
+        self._prob = pulp.LpProblem()
         self._lpvars = {}
-        for v in variables:
-            self._add_lpvar(v)
+        self._vars = {}
 
-        for c in self._conststore:
-            prob += self._convert_constraint(c)
-
-        status = prob.solve()
-        variables = prob.variables()
-        return SolutionPulp(status, variables)
-
-    def _add_lpvar(self, v):
-        if v.name not in self._lpvars:
-            lv = pulp.LpVariable(v.name, v.domain.min, v.domain.max - 1, pulp.LpInteger)
-            self._lpvars[v.name] = lv
-        return self._lpvars[v.name]
+    def add_constraint(self, c):
+        if isinstance(c, Variables):
+            for v in c.flat:
+                if v is not None:
+                    self.add_constraint(v)
+        else:
+            self._prob += self._convert_constraint(c)
 
     def _convert_constraint(self, c):
         if isinstance(c, (np.integer, int)):
             return c
         if isinstance(c, Variable):
+            if c.name not in self._vars:
+                self._vars[c.name] = c
+            elif self._vars[c.name] is not c:
+                raise ValueError("Two distinct variables with the same name in the same model")
             return self._add_lpvar(c)
 
         lpexpr = [self._convert_constraint(v) for v in c.values]
@@ -118,6 +83,18 @@ class SolverPulp(Solver):
             return lpexpr[0] + lpexpr[1]
         if c.op == '=':
             return lpexpr[0] == lpexpr[1]
+
+    def _add_lpvar(self, v):
+        if v.name not in self._lpvars:
+            lv = pulp.LpVariable(v.name, v.domain.min, v.domain.max - 1, pulp.LpInteger)
+            self._lpvars[v.name] = lv
+
+        return self._lpvars[v.name]
+
+    def solve(self):
+        status = self._prob.solve()
+        variables = self._prob.variables()
+        return SolutionPulp(status, variables)
 
 
 
