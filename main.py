@@ -30,8 +30,13 @@ def main():
         while not game.finished:
             board = game.board
             print(game)
-            move = ai.next_move(board)
-            game.click(*move)
+            move, *coord = ai.next_move(board)
+            if move == 'click':
+                game.click(*coord)
+            elif move == 'flag':
+                game.flag(*coord)
+            else:
+                raise ValueError("move %r not understood" % move)
 
         print(game)
         if game.won:

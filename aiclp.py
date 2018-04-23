@@ -131,12 +131,13 @@ class AI(object):
 
             if self._is_cell_free(x, y, hintsconst, nomineconst):
                 self.lastmove = x, y
-                return x, y
+                return 'click', x, y
 
             # There exist a solution that might put a mine there.
             # Make sure there's necessarily one and mark it.
             elif self._is_cell_a_mine(x, y, hintsconst, nomineconst):
                 self.known_mines[y, x] = True
+                return 'flag', x, y
 
 
         # Just choose a random cell
@@ -150,4 +151,4 @@ class AI(object):
 
         y, x = randcoord[np.random.randint(randcoord.shape[0])]
         self.lastmove = x, y
-        return x, y
+        return 'click', x, y
