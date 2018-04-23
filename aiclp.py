@@ -29,14 +29,14 @@ class AI(object):
         self.height = height
         self.lastmove = (np.random.randint(width), np.random.randint(height))
         self.known_mines = np.zeros((height, width), np.bool)
+        self.varmines = clpfd.Variables((height, width), range(2), "mine")
 
 
 
-    def _hint_constraints(self, varmines, board):
+    def _hint_constraints(self, board):
         """
         Build and return a matrix of expressions that represents the number of
         mines around each cell.
-        varmines: Matrix of clpfd Variables representing the presence of mine
         in each cell.
         board: Matrix of booleans integers representing the board.
         """
@@ -51,7 +51,7 @@ class AI(object):
 
         for a in [-1, 0, 1]:
             for b in [-1, 0, 1]:
-                summines[1+a:h+1+a, 1+b:w+1+b] += varmines
+                summines[1+a:h+1+a, 1+b:w+1+b] += self.varmines
 
         # Remove the padding that was added just to make the sums
         summines = summines[1:-1, 1:-1]
@@ -86,12 +86,12 @@ class AI(object):
 
 
 
-    def _is_cell_free(self, x, y, hintsconst, nomineconst, varmines):
+    def _is_cell_free(self, x, y, hintsconst, nomineconst):
         solver = clpfd.solver()
         solver.add_constraint(hintsconst)
         solver.add_constraint(nomineconst)
-        solver.add_constraint(varmines[self.known_mines] == 1)
-        solver.add_constraint(varmines[y, x] == 1)
+        solver.add_constraint(self.varmines[self.known_mines] == 1)
+        solver.add_constraint(self.varmines[y, x] == 1)
 
         printover("checking if %d, %d is free" % (x, y))
         sol = solver.solve()
@@ -100,12 +100,12 @@ class AI(object):
 
 
 
-    def _is_cell_a_mine(self, x, y, hintsconst, nomineconst, varmines):
+    def _is_cell_a_mine(self, x, y, hintsconst, nomineconst):
         solver = clpfd.solver()
         solver.add_constraint(hintsconst)
         solver.add_constraint(nomineconst)
-        solver.add_constraint(varmines[self.known_mines] == 1)
-        solver.add_constraint(varmines[y, x] == 0)
+        solver.add_constraint(self.varmines[self.known_mines] == 1)
+        solver.add_constraint(self.varmines[y, x] == 0)
 
         printover("checking if %d, %d is a mine" % (x, y))
         sol = solver.solve()
@@ -119,11 +119,10 @@ class AI(object):
         w = board.shape[1]
         openboard = (board >= 0)
 
-        varmines = clpfd.Variables(board.shape, range(2), "mines")
-        hintsconst = self._hint_constraints(varmines, board)
+        hintsconst = self._hint_constraints(board)
 
         # Where there is a hint, there is no mine
-        nomineconst = (varmines[openboard] == 0)
+        nomineconst = (self.varmines[openboard] == 0)
 
         checkboard, checkcoords = self._check_coords(openboard)
 
@@ -134,13 +133,13 @@ class AI(object):
             if self.known_mines[y, x]:
                 continue
 
-            if self._is_cell_free(x, y, hintsconst, nomineconst, varmines):
+            if self._is_cell_free(x, y, hintsconst, nomineconst):
                 self.lastmove = x, y
                 return x, y
 
             # There exist a solution that might put a mine there.
             # Make sure there's necessarily one and mark it.
-            elif self._is_cell_a_mine(x, y, hintsconst, nomineconst, varmines):
+            elif self._is_cell_a_mine(x, y, hintsconst, nomineconst):
                 self.known_mines[y, x] = True
 
 
