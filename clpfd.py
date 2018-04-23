@@ -98,7 +98,7 @@ class SolverPulp(Solver):
 
 
 
-class Domain(object):
+class Domain(metaclass=ABCMeta):
     pass
 
 
