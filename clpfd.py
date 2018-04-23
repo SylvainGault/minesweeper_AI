@@ -40,6 +40,9 @@ def solver(backend='pulp'):
 
 
 class Solver(metaclass=ABCMeta):
+    def copy(self):
+        raise NotImplementedError("Must be implemented by subclass")
+
     def add_constraint(self, c):
         """Add a constraint to be solved."""
         raise NotImplementedError("Must be implemented by subclass")
@@ -57,6 +60,13 @@ class SolverPulp(Solver):
         self._prob = pulp.LpProblem()
         self._lpvars = {}
         self._vars = {}
+
+    def copy(self):
+        new = SolverPulp()
+        new._prob = self._prob.copy()
+        new._lpvars = self._lpvars
+        new._vars = self._vars
+        return new
 
     def add_constraint(self, c):
         if isinstance(c, Variables):
