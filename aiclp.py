@@ -20,7 +20,6 @@ class AI(object):
         self.width = None
         self.height = None
         self.lastmove = None
-        self.known_mines = None
 
 
 
@@ -28,7 +27,6 @@ class AI(object):
         self.width = width
         self.height = height
         self.lastmove = (np.random.randint(width), np.random.randint(height))
-        self.known_mines = np.zeros((height, width), np.bool)
         self.varmines = clpfd.Variables((height, width), range(2), "mine")
 
 
@@ -63,7 +61,7 @@ class AI(object):
 
 
 
-    def _check_coords(self, openboard):
+    def _check_coords(self, openboard, known_mines):
         """
         Return a matrix of cells to check and the list of their coordinate in
         the order in which they should be checked.
@@ -71,7 +69,7 @@ class AI(object):
         # Cells to check for mines
         kern = np.ones((3, 3), dtype=np.bool)
         checkboard = morph.binary_dilation(openboard, structure=kern)
-        checkboard = (checkboard ^ openboard) & ~self.known_mines
+        checkboard = (checkboard ^ openboard) & ~known_mines
         checkcoords = np.argwhere(checkboard)
 
         # Check the cells in order from the closest to the farthest from the
@@ -108,12 +106,12 @@ class AI(object):
 
 
 
-    def _random_cell(self, board, checkboard):
+    def _random_cell(self, board, checkboard, known_mines):
         """
         Return the coordinates of a random cell that is not currently flagged.
         Preferably, one that wasn't just checked.
         """
-        openableboard = (board < 0) & ~self.known_mines
+        openableboard = (board < 0) & ~known_mines
         randboard = openableboard & ~checkboard
         randcoord = np.argwhere(randboard)
 
@@ -129,18 +127,19 @@ class AI(object):
         h = board.shape[0]
         w = board.shape[1]
         openboard = (board >= 0)
+        known_mines = (board == -2)
 
         hintsconst = self._hint_constraints(board)
 
         # Where there is a hint, there is no mine
         nomineconst = (self.varmines[openboard] == 0)
 
-        checkboard, checkcoords = self._check_coords(openboard)
+        checkboard, checkcoords = self._check_coords(openboard, known_mines)
 
         solver = clpfd.solver()
         solver.add_constraint(hintsconst)
         solver.add_constraint(nomineconst)
-        solver.add_constraint(self.varmines[self.known_mines] == 1)
+        solver.add_constraint(self.varmines[known_mines] == 1)
 
         for c in checkcoords:
             y, x = c
@@ -149,9 +148,8 @@ class AI(object):
                 self.lastmove = x, y
                 return 'click', x, y
 
-        x, y = self._random_cell(board, checkboard)
+        x, y = self._random_cell(board, checkboard, known_mines)
         if self._is_cell_a_mine(solver, x, y):
-            self.known_mines[y, x] = True
             return 'flag', x, y
 
         self.lastmove = x, y
