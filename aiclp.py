@@ -27,7 +27,7 @@ class AI(object):
         self.width = width
         self.height = height
         self.lastmove = (np.random.randint(width), np.random.randint(height))
-        self.varmines = clpfd.Expressions((height, width), range(2), "mine")
+        self.varmines = clpfd.Variables((height, width), range(2), "mine")
 
 
 

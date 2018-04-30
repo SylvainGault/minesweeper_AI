@@ -249,6 +249,18 @@ class Expressions(np.ndarray):
 
 
 
+class Variables(Expressions):
+    def __new__(subtype, shape, domain=None, name_prefix=None):
+        arr = super(Variables, subtype).__new__(subtype, shape)
+        if name_prefix is None:
+            name_prefix = Variable.new_name()
+
+        arr.flat = [Variable(domain, "%s_%d" % (name_prefix, i)) for i in range(len(arr.flat))]
+
+        return arr
+
+
+
 def main():
     s = solver()
     a = Variable()
