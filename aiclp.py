@@ -27,7 +27,7 @@ class AI(object):
         self.width = width
         self.height = height
         self.lastmove = (np.random.randint(width), np.random.randint(height))
-        self.varmines = clpfd.Variables((height, width), range(2), "mine")
+        self.varmines = clpfd.Expressions((height, width), range(2), "mine")
 
 
 
@@ -44,7 +44,7 @@ class AI(object):
         closeboard = (board < 0)
 
         # Add a padding around to simplify the summation just below
-        summines = np.empty((h + 2, w + 2), np.object).view(clpfd.Variables)
+        summines = np.empty((h + 2, w + 2), np.object).view(clpfd.Expressions)
         summines[:, :] = 0
 
         for a in [-1, 0, 1]:

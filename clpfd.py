@@ -69,7 +69,7 @@ class SolverPulp(Solver):
         return new
 
     def add_constraint(self, c):
-        if isinstance(c, Variables):
+        if isinstance(c, Expressions):
             for v in c.flat:
                 if v is not None:
                     self.add_constraint(v)
@@ -185,15 +185,15 @@ class Variable(Expression):
 
 
 
-class Variables(np.ndarray):
+class Expressions(np.ndarray):
     """
-    A convenient class to manipulate arrays of Variable.
+    A convenient class to manipulate arrays of Expression.
     """
 
     # To unstandand this black magic, refer to the numpy documentation about
     # subclassing ndarray.
     def __new__(subtype, shape, domain=None, name_prefix=None):
-        arr = super(Variables, subtype).__new__(subtype, shape, dtype=np.object)
+        arr = super(Expressions, subtype).__new__(subtype, shape, dtype=np.object)
         if name_prefix is None:
             name_prefix = Variable.new_name()
 
@@ -212,7 +212,7 @@ class Variables(np.ndarray):
                 results = np.empty(bc.shape, dtype=np.object)
             results.flat = [(a == b) for a, b in bc]
         else:
-            results = super(Variables, self).__array_ufunc__(ufunc, method, *inputs, **kwargs)
+            results = super(Expressions, self).__array_ufunc__(ufunc, method, *inputs, **kwargs)
             if results is NotImplemented:
                 return NotImplemented
 
@@ -223,12 +223,12 @@ class Variables(np.ndarray):
         # return anything else than booleans.
         # https://github.com/numpy/numpy/issues/10948
         try:
-            inputs = [i.view(np.ndarray) if isinstance(i, Variables) else i for i in inputs]
+            inputs = [i.view(np.ndarray) if isinstance(i, Expressions) else i for i in inputs]
 
             outputs = kwargs.pop('out', None)
             if outputs is not None:
-                # The output to convert back to Variables object
-                convout = [isinstance(o, Variables) for o in outputs]
+                # The output to convert back to Expressions object
+                convout = [isinstance(o, Expressions) for o in outputs]
                 # kwargs['out'] must be a tuple
                 kwargs['out'] = tuple(o.view(np.ndarray) if v else o for v, o in zip(convout, outputs))
             else:
@@ -239,7 +239,7 @@ class Variables(np.ndarray):
             if ufunc.nout == 1:
                 results = (results,)
 
-            results = tuple(np.asarray(r).view(Variables) if v else r for v, r in zip(convout, results))
+            results = tuple(np.asarray(r).view(Expressions) if v else r for v, r in zip(convout, results))
 
             return results[0] if ufunc.nout == 1 else results
 
@@ -257,7 +257,7 @@ def main():
     s.add_constraint(a + b == c)
     print(s.solve())
 
-    v = Variables((2, 2))
+    v = Expressions((2, 2))
     #print(np.sum(v, axis=0))
     v += 0
     print(v == 0)
