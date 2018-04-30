@@ -44,8 +44,7 @@ class AI(object):
         closeboard = (board < 0)
 
         # Add a padding around to simplify the summation just below
-        summines = np.empty((h + 2, w + 2), np.object).view(clpfd.Expressions)
-        summines[:, :] = 0
+        summines = clpfd.Zeros((h + 2, w + 2))
 
         for a in [-1, 0, 1]:
             for b in [-1, 0, 1]:

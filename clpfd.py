@@ -261,6 +261,14 @@ class Variables(Expressions):
 
 
 
+class Zeros(Expressions):
+    def __new__(subtype, shape, name_prefix=None):
+        arr = super(Zeros, subtype).__new__(subtype, shape)
+        arr.flat = 0
+        return arr
+
+
+
 def main():
     s = solver()
     a = Variable()
