@@ -42,6 +42,8 @@ class AI(object):
         h = self.height
         w = self.width
         closeboard = (board < 0)
+        openboard = ~closeboard
+        hintboard = (board > 0)
 
         # Add a padding around to simplify the summation just below
         summines = clpfd.Zeros((h + 2, w + 2))
@@ -55,7 +57,10 @@ class AI(object):
 
         # Set the constraint that the sum of mines is equal to the hint
         hintsconst = (summines == board)
-        hintsconst[closeboard] = None
+
+        # Remove useless constraints
+        hintsconst[~hintboard] = None
+
         return hintsconst
 
 
