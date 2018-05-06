@@ -113,10 +113,17 @@ class AI(object):
     def _random_cell(self, board, checkboard, known_mines):
         """
         Return the coordinates of a random cell that is not currently flagged.
-        Preferably, one that wasn't just checked.
+        Preferably, one that wasn't just checked but not too far so that it
+        might give a useful hint.
         """
+        # TODO don't choose at random.
+        # Choose a cell whose hint would constrain most of the just checked cells
+        # And just for realism, order the equal ones by distance to the last played position
+        kern = np.ones((3, 3), dtype=np.bool)
         openableboard = (board < 0) & ~known_mines
-        randboard = openableboard & ~checkboard
+        mask = openableboard & ~checkboard
+        randboard = morph.binary_dilation(checkboard, structure=kern, mask=mask)
+        randboard &= ~checkboard
         randcoord = np.argwhere(randboard)
 
         if randcoord.shape[0] == 0:
