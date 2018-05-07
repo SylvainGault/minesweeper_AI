@@ -90,7 +90,7 @@ class SolverPulp(Solver):
 
         # TODO handle specially when comparing the result of two constraints
         if c.op == '+':
-            return lpexpr[0] + lpexpr[1]
+            return sum(lpexpr)
         if c.op == '=':
             return lpexpr[0] == lpexpr[1]
 
@@ -129,14 +129,24 @@ class DomainRange(Domain):
 class Expression(object):
     def __init__(self, op, *values):
         self.op = op
-        self.values = values
+        self.values = list(values)
 
         for v in values:
             assert isinstance(v, (Expression, int, np.integer)), \
                 "Can only build expressions out of expressions or integers. Got: %s" % type(v)
 
     def __add__(self, value):
-        return Expression('+', self, value)
+        if self.op == '+':
+            values = self.values
+        else:
+            values = [self]
+
+        if isinstance(value, Expression) and value.op == '+':
+            values += value.values
+        else:
+            values.append(value)
+
+        return Expression('+', *values)
 
     def __radd__(self, value):
         return self + value
@@ -145,7 +155,7 @@ class Expression(object):
         return Expression('=', self, value)
 
     def __str__(self):
-        return str(self.values[0]) + " " + self.op + " " + str(self.values[1])
+        return (" %s " % self.op).join(str(v) for v in self.values)
 
     def variables(self):
         if isinstance(self, Variable):
