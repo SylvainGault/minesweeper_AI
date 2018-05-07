@@ -139,7 +139,7 @@ class Expression(object):
         return Expression('+', self, value)
 
     def __radd__(self, value):
-        return Expression('+', value, self)
+        return self + value
 
     def __eq__(self, value):
         return Expression('=', self, value)
