@@ -144,6 +144,7 @@ class AI(object):
         solver.add_constraint(hintsconst)
         solver.add_constraint(nomineconst)
         solver.add_constraint(self.varmines[known_mines] == 1)
+        solver.stoponlinesolve()
 
         for c in checkcoords:
             y, x = c

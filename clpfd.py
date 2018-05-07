@@ -61,12 +61,14 @@ class SolverPulp(Solver):
         self._lpvars = {}
         self._vars = {}
         self._conststore = []
+        self._stopped = False
 
     def copy(self):
         new = SolverPulp()
         new._prob = self._prob.copy()
         new._lpvars = self._lpvars
         new._vars = self._vars
+        new._stopped = self._stopped
         new._conststore = self._conststore.copy()
         return new
 
@@ -75,6 +77,8 @@ class SolverPulp(Solver):
             for v in c.flat:
                 if v is not None:
                     self.add_constraint(v)
+        elif self._stopped:
+            self._prob += self._convert_constraint(c)
         else:
             self._conststore.append(c)
 
@@ -103,9 +107,15 @@ class SolverPulp(Solver):
 
         return self._lpvars[v.name]
 
-    def solve(self):
+    def stoponlinesolve(self):
         for c in self._conststore:
             self._prob += self._convert_constraint(c)
+        self._conststore = []
+        self._stopped = True
+
+    def solve(self):
+        if not self._stopped:
+            self.stoponlinesolve()
 
         status = self._prob.solve()
         variables = self._prob.variables()
