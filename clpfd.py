@@ -142,7 +142,17 @@ class DomainRange(Domain):
 
 
 class Expression(object):
+    _expridx = 0
+
+    @classmethod
+    def new_name(cls):
+        name = "expr_%d" % Expression._expridx
+        Expression._expridx += 1
+        return name
+
+
     def __init__(self, op, *values):
+        self.name = self.new_name()
         self.op = op
         self.values = list(values)
 
@@ -191,15 +201,13 @@ class Variable(Expression):
     def __init__(self, domain=None, name=None):
         super(Variable, self).__init__(None)
 
-        if name is None:
-            name = self.new_name()
-
         if domain is None:
             domain = DomainRange()
         elif isinstance(domain, range):
             domain = DomainRange.fromrange(domain)
 
-        self.name = name
+        if name is not None:
+            self.name = name
         self.domain = domain
 
     def __str__(self):
