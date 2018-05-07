@@ -60,7 +60,7 @@ class SolverPulp(Solver):
         self._prob = pulp.LpProblem()
         self._lpvars = {}
         self._vars = {}
-        self._conststore = []
+        self._conststore = {}
         self._stopped = False
 
     def copy(self):
@@ -80,7 +80,7 @@ class SolverPulp(Solver):
         elif self._stopped:
             self._prob += self._convert_constraint(c)
         else:
-            self._conststore.append(c)
+            self._conststore[c.name] = c
 
     def _convert_constraint(self, c):
         if isinstance(c, (np.integer, int)):
@@ -108,9 +108,9 @@ class SolverPulp(Solver):
         return self._lpvars[v.name]
 
     def stoponlinesolve(self):
-        for c in self._conststore:
+        for c in self._conststore.values():
             self._prob += self._convert_constraint(c)
-        self._conststore = []
+        self._conststore = {}
         self._stopped = True
 
     def solve(self):
