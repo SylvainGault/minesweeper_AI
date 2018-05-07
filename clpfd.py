@@ -60,12 +60,14 @@ class SolverPulp(Solver):
         self._prob = pulp.LpProblem()
         self._lpvars = {}
         self._vars = {}
+        self._conststore = []
 
     def copy(self):
         new = SolverPulp()
         new._prob = self._prob.copy()
         new._lpvars = self._lpvars
         new._vars = self._vars
+        new._conststore = self._conststore.copy()
         return new
 
     def add_constraint(self, c):
@@ -74,7 +76,7 @@ class SolverPulp(Solver):
                 if v is not None:
                     self.add_constraint(v)
         else:
-            self._prob += self._convert_constraint(c)
+            self._conststore.append(c)
 
     def _convert_constraint(self, c):
         if isinstance(c, (np.integer, int)):
@@ -102,6 +104,9 @@ class SolverPulp(Solver):
         return self._lpvars[v.name]
 
     def solve(self):
+        for c in self._conststore:
+            self._prob += self._convert_constraint(c)
+
         status = self._prob.solve()
         variables = self._prob.variables()
         return SolutionPulp(status, variables)
