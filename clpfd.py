@@ -80,6 +80,9 @@ class SolverPulp(Solver):
         elif self._stopped:
             self._prob += self._convert_constraint(c)
         else:
+            if c.name in self._conststore:
+                raise ValueError("Constraint %s already in the model" % c)
+
             self._conststore[c.name] = c
 
     def _convert_constraint(self, c):
