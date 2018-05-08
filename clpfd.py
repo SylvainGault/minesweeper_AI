@@ -92,8 +92,6 @@ class SolverPulp(Solver):
         self._conststore[c.name] = c
 
     def _convert_constraint(self, c):
-        if isinstance(c, (np.integer, int)):
-            return c
         if isinstance(c, Variable):
             if c.name not in self._vars:
                 self._vars[c.name] = c
@@ -163,11 +161,15 @@ class Expression(object):
     def __init__(self, op, *values):
         self.name = self.new_name()
         self.op = op
-        self.values = list(values)
+        self.values = []
 
         for v in values:
             assert isinstance(v, (Expression, int, np.integer)), \
                 "Can only build expressions out of expressions or integers. Got: %s" % type(v)
+
+            if isinstance(v, (int, np.integer)):
+                v = Variable(v)
+            self.values.append(v)
 
     def iscomparison(self):
         return self.op in '='
@@ -228,6 +230,8 @@ class Variable(Expression):
         self.domain = domain
 
     def __str__(self):
+        if self.isinteger():
+            return str(int(self))
         return self.name
 
     def __hash__(self):
