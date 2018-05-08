@@ -77,13 +77,19 @@ class SolverPulp(Solver):
             for v in c.flat:
                 if v is not None:
                     self.add_constraint(v)
-        elif self._stopped:
-            self._prob += self._convert_constraint(c)
-        else:
-            if c.name in self._conststore:
-                raise ValueError("Constraint %s already in the model" % c)
+            return
 
-            self._conststore[c.name] = c
+        if not c.iscomparison():
+            raise ValueError("Constraint can only be a comparison expressions")
+
+        if self._stopped:
+            self._prob += self._convert_constraint(c)
+            return
+
+        if c.name in self._conststore:
+            raise ValueError("Constraint %s already in the model" % c)
+
+        self._conststore[c.name] = c
 
     def _convert_constraint(self, c):
         if isinstance(c, (np.integer, int)):
@@ -162,6 +168,12 @@ class Expression(object):
         for v in values:
             assert isinstance(v, (Expression, int, np.integer)), \
                 "Can only build expressions out of expressions or integers. Got: %s" % type(v)
+
+    def iscomparison(self):
+        return self.op in '='
+
+    def isariththmetic(self):
+        return self.op in '+'
 
     def __add__(self, value):
         if self.op == '+':
