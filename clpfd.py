@@ -266,23 +266,3 @@ class Zeros(Expressions):
         arr = super(Zeros, subtype).__new__(subtype, shape)
         arr.flat = 0
         return arr
-
-
-
-def main():
-    s = solver()
-    a = Variable()
-    b = Variable()
-    c = Variable()
-    s.add_constraint(a + b == c)
-    print(s.solve())
-
-    v = Expressions((2, 2))
-    #print(np.sum(v, axis=0))
-    v += 0
-    print(v == 0)
-
-
-
-if __name__ == '__main__':
-    main()
