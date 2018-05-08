@@ -220,6 +220,8 @@ class Variable(Expression):
             domain = DomainRange()
         elif isinstance(domain, range):
             domain = DomainRange.fromrange(domain)
+        elif isinstance(domain, (int, np.integer)):
+            domain = DomainRange(domain, domain + 1)
 
         if name is not None:
             self.name = name
