@@ -97,6 +97,8 @@ class SolverPulp(Solver):
                 self._vars[c.name] = c
             elif self._vars[c.name] is not c:
                 raise ValueError("Two distinct variables with the same name in the same model")
+            if c.isinteger():
+                return pulp.LpAffineExpression(int(c))
             return self._add_lpvar(c)
 
         lpexpr = [self._convert_constraint(v) for v in c.values]
@@ -145,6 +147,11 @@ class DomainRange(Domain):
         assert isinstance(r, range), "DomainRange.fromrange only accepts range objects"
         assert r.step == 1, "Sparse ranges not implemented yet"
         return DomainRange(r.start, r.stop)
+
+    def __len__(self):
+        if self.min is None or self.max is None:
+            return float('inf')
+        return max(self.max - self.min, 0)
 
 
 
@@ -236,6 +243,13 @@ class Variable(Expression):
 
     def __hash__(self):
         return hash(self.name)
+
+    def isinteger(self):
+        return len(self.domain) == 1
+
+    def __int__(self):
+        assert self.isinteger()
+        return int(self.domain.min)
 
 
 
