@@ -194,6 +194,11 @@ class DomainRange(Domain):
             return float('inf')
         return max(self.max - self.min, 0)
 
+    def __str__(self):
+        if len(self) == 1:
+            return "[%d]" % self.min
+        return "[%d..%d]" % (self.min, self.max - 1)
+
     def __add__(self, other):
         if self.min is None:
             low = other.min
@@ -300,7 +305,7 @@ class Variable(Expression):
     def __str__(self):
         if self.isinteger():
             return str(int(self))
-        return self.name
+        return "%s%s" % (self.name, self.domain)
 
     def __hash__(self):
         return hash(self.name)
