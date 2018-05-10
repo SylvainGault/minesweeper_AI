@@ -73,6 +73,20 @@ class SolverPulp(Solver):
             new._cache_copy_expr(e)
         return new
 
+    @staticmethod
+    def _expr_domain(e):
+        assert isinstance(e, Expression)
+
+        if isinstance(e, Variable):
+            return e.domain
+
+        if e.op == '=':
+            return DomainRange(0, 2)
+        elif e.op == '+':
+            return sum((v.domain for v in e.values), DomainRange())
+        else:
+            raise ValueError("Can't evaluate the domain of a '%s' expression" % new.op)
+
     def _cache_copy_expr(self, c):
         assert isinstance(c, Expression)
 
@@ -83,6 +97,8 @@ class SolverPulp(Solver):
                 newvalues = [self._cache_copy_expr(v) for v in c.values]
                 new = Expression(c.op, *newvalues)
                 new.name = c.name
+                new.domain = self._expr_domain(new)
+
                 self._cache_expr[c.name] = (c, new)
 
         elif self._cache_expr[c.name][0] is not c and self._cache_expr[c.name][1] is not c:
@@ -171,6 +187,23 @@ class DomainRange(Domain):
         if self.min is None or self.max is None:
             return float('inf')
         return max(self.max - self.min, 0)
+
+    def __add__(self, other):
+        if self.min is None:
+            low = other.min
+        elif other.min is None:
+            low = self.min
+        else:
+            low = self.min + other.min
+
+        if self.max is None:
+            up = other.max
+        elif other.max is None:
+            up = self.max
+        else:
+            up = self.max + other.max - 1
+
+        return DomainRange(low, up)
 
 
 
