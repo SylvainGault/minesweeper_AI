@@ -92,13 +92,19 @@ class SolverPulp(Solver):
 
         if c.name not in self._cache_expr:
             if isinstance(c, Variable):
-                self._cache_expr[c.name] = (c, c.copy())
+                copy = c.copy()
+                copy.parents = []
+                self._cache_expr[c.name] = (c, copy)
             else:
                 newvalues = [self._cache_copy_expr(v) for v in c.values]
                 new = Expression(c.op, *newvalues)
                 new.name = c.name
                 new.domain = self._expr_domain(new)
 
+                for v in newvalues:
+                    v.parents.append(new)
+
+                new.parents = []
                 self._cache_expr[c.name] = (c, new)
 
         elif self._cache_expr[c.name][0] is not c and self._cache_expr[c.name][1] is not c:
