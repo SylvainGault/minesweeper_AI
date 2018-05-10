@@ -59,7 +59,6 @@ class SolverPulp(Solver):
         import pulp
         self._prob = pulp.LpProblem()
         self._lpvars = {}
-        self._vars = {}
         self._conststore = {}
         self._stopped = False
         self._cache_expr = {}
@@ -68,10 +67,9 @@ class SolverPulp(Solver):
         new = SolverPulp()
         new._prob = self._prob.copy()
         new._lpvars = self._lpvars
-        new._vars = self._vars
         new._stopped = self._stopped
         new._conststore = self._conststore.copy()
-        for e in self._cache_expr.values():
+        for (e, _) in self._cache_expr.values():
             new._cache_copy_expr(e)
         return new
 
@@ -80,14 +78,17 @@ class SolverPulp(Solver):
 
         if c.name not in self._cache_expr:
             if isinstance(c, Variable):
-                self._cache_expr[c.name] = c.copy()
+                self._cache_expr[c.name] = (c, c.copy())
             else:
                 newvalues = [self._cache_copy_expr(v) for v in c.values]
                 new = Expression(c.op, *newvalues)
                 new.name = c.name
-                self._cache_expr[c.name] = new
+                self._cache_expr[c.name] = (c, new)
 
-        return self._cache_expr[c.name]
+        elif self._cache_expr[c.name][0] is not c and self._cache_expr[c.name][1] is not c:
+            raise ValueError("Two distinct expressions with the name '%s' in the same model" % c.name)
+
+        return self._cache_expr[c.name][1]
 
     def add_constraint(self, c):
         if isinstance(c, Expressions):
@@ -112,10 +113,6 @@ class SolverPulp(Solver):
 
     def _convert_constraint(self, c):
         if isinstance(c, Variable):
-            if c.name not in self._vars:
-                self._vars[c.name] = c
-            elif self._vars[c.name] is not c:
-                raise ValueError("Two distinct variables with the name '%s' in the same model" % c.name)
             if c.isinteger():
                 return pulp.LpAffineExpression(int(c))
             return self._add_lpvar(c)
