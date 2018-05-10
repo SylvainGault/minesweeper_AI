@@ -62,6 +62,7 @@ class SolverPulp(Solver):
         self._vars = {}
         self._conststore = {}
         self._stopped = False
+        self._cache_expr = {}
 
     def copy(self):
         new = SolverPulp()
@@ -70,7 +71,23 @@ class SolverPulp(Solver):
         new._vars = self._vars
         new._stopped = self._stopped
         new._conststore = self._conststore.copy()
+        for e in self._cache_expr.values():
+            new._cache_copy_expr(e)
         return new
+
+    def _cache_copy_expr(self, c):
+        assert isinstance(c, Expression)
+
+        if c.name not in self._cache_expr:
+            if isinstance(c, Variable):
+                self._cache_expr[c.name] = c.copy()
+            else:
+                newvalues = [self._cache_copy_expr(v) for v in c.values]
+                new = Expression(c.op, *newvalues)
+                new.name = c.name
+                self._cache_expr[c.name] = new
+
+        return self._cache_expr[c.name]
 
     def add_constraint(self, c):
         if isinstance(c, Expressions):
@@ -81,6 +98,8 @@ class SolverPulp(Solver):
 
         if not c.iscomparison():
             raise ValueError("Constraint can only be a comparison expressions")
+
+        c = self._cache_copy_expr(c)
 
         if self._stopped:
             self._prob += self._convert_constraint(c)
@@ -96,7 +115,7 @@ class SolverPulp(Solver):
             if c.name not in self._vars:
                 self._vars[c.name] = c
             elif self._vars[c.name] is not c:
-                raise ValueError("Two distinct variables with the same name in the same model")
+                raise ValueError("Two distinct variables with the name '%s' in the same model" % c.name)
             if c.isinteger():
                 return pulp.LpAffineExpression(int(c))
             return self._add_lpvar(c)
@@ -118,7 +137,7 @@ class SolverPulp(Solver):
 
     def stoponlinesolve(self):
         for c in self._conststore.values():
-            self._prob += self._convert_constraint(c)
+            self._prob += self._convert_constraint(self._cache_copy_expr(c))
         self._conststore = {}
         self._stopped = True
 
@@ -147,6 +166,9 @@ class DomainRange(Domain):
         assert isinstance(r, range), "DomainRange.fromrange only accepts range objects"
         assert r.step == 1, "Sparse ranges not implemented yet"
         return DomainRange(r.start, r.stop)
+
+    def copy(self):
+        return DomainRange(self.min, self.max)
 
     def __len__(self):
         if self.min is None or self.max is None:
@@ -235,6 +257,9 @@ class Variable(Expression):
         if name is not None:
             self.name = name
         self.domain = domain
+
+    def copy(self):
+        return Variable(self.domain.copy(), self.name)
 
     def __str__(self):
         if self.isinteger():
