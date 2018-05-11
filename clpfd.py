@@ -113,6 +113,55 @@ class SolverPulp(Solver):
 
         return self._cache_expr[c.name][1]
 
+    def _propagate(self, seedexpr):
+        checkexpr = set([seedexpr.name])
+
+        def update_expr_domain(expr, d):
+            if expr.domain == d:
+                return
+
+            expr.domain = d
+            checkexpr.add(expr.name)
+
+            # If we changed a component of a sum, we will have to check the sum again
+            for e in expr.parents:
+                if e.op == '+':
+                    checkexpr.add(e.name)
+
+        while checkexpr:
+            expr = self._cache_expr[checkexpr.pop()][1]
+            assert isinstance(expr, Expression)
+
+            # expr has been modified, look around and propagate
+            for e in expr.parents:
+                # If the update removes some values from the old domain, propagate
+                d = self._expr_domain(e) & e.domain
+                update_expr_domain(e, d)
+
+            if isinstance(expr, Variable):
+                continue
+
+            if expr.op == '=':
+                # new domain is the intersection of both domains
+                # if either side has changed, add to checkexpr
+                d = DomainRange()
+                for e in expr.values:
+                    d &= e.domain
+
+                for e in expr.values:
+                    update_expr_domain(e, d)
+
+            elif expr.op == '+':
+                # Propagate the loosest constraint on the sum
+                dsum = expr.domain - self._expr_domain(expr)
+                for e in expr.values:
+                    # Remove e.domain from the subtraction above
+                    d = DomainRange(dsum.min + e.domain.max - 1, dsum.max + e.domain.min)
+                    d &= e.domain
+                    update_expr_domain(e, d)
+            else:
+                raise ValueError("Can't propagate constraints of a '%s' expression" % expr.op)
+
     def add_constraint(self, c):
         if isinstance(c, Expressions):
             for v in c.flat:
@@ -133,6 +182,7 @@ class SolverPulp(Solver):
             raise ValueError("Constraint %s already in the model" % c)
 
         self._conststore[c.name] = c
+        self._propagate(c)
 
     def _convert_constraint(self, c):
         if isinstance(c, Variable):
