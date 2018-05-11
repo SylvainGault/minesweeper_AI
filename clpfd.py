@@ -69,8 +69,9 @@ class SolverPulp(Solver):
         new._lpvars = self._lpvars
         new._stopped = self._stopped
         new._conststore = self._conststore.copy()
-        for (e, _) in self._cache_expr.values():
+        for (e, c) in self._cache_expr.values():
             new._cache_copy_expr(e)
+            new._cache_expr[e.name][1].domain = c.domain.copy()
         return new
 
     @staticmethod
