@@ -200,6 +200,16 @@ class DomainRange(Domain):
             return "[%d]" % self.min
         return "[%d..%d]" % (self.min, self.max - 1)
 
+    def __eq__(self, other):
+        if len(self) == 0 and len(other) == 0:
+            return True
+        return self.min == other.min and self.max == other.max
+
+    def __neg__(self):
+        up = None if self.min is None else -self.min + 1
+        low = None if self.max is None else -self.max + 1
+        return DomainRange(low, up)
+
     def __add__(self, other):
         if self.min is None:
             low = other.min
@@ -214,6 +224,26 @@ class DomainRange(Domain):
             up = self.max
         else:
             up = self.max + other.max - 1
+
+        return DomainRange(low, up)
+
+    def __sub__(self, other):
+        return self + -other
+
+    def __and__(self, other):
+        if self.min is None:
+            low = other.min
+        elif other.min is None:
+            low = self.min
+        else:
+            low = max(self.min, other.min)
+
+        if self.max is None:
+            up = other.max
+        elif other.max is None:
+            up = self.max
+        else:
+            up = min(self.max, other.max)
 
         return DomainRange(low, up)
 
